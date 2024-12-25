@@ -1,10 +1,10 @@
 import streamlit as st
-import pandas as pd
+import talib
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from technical_analysis import add_technical_indicators
 from data_loader import download_stock_data
 
 # عنوان التطبيق
@@ -16,6 +16,43 @@ start_date = st.date_input("تاريخ البداية:", value=pd.to_datetime("2
 end_date = st.date_input("تاريخ النهاية:", value=pd.to_datetime("2023-12-31"))
 future_days = st.slider("عدد الأيام للتنبؤ:", min_value=1, max_value=30, value=5)
 
+def add_technical_indicators_talib(data):
+    """
+    إضافة المؤشرات الفنية باستخدام مكتبة TA-Lib
+    """
+    try:
+        # التأكد من وجود عمود 'Close' وعدم وجود قيم مفقودة
+        if 'Close' not in data.columns or data['Close'].isnull().all():
+            raise ValueError("البيانات لا تحتوي على عمود 'Close' صالح.")
+
+        # ملء القيم المفقودة في عمود 'Close'
+        data['Close'] = data['Close'].ffill().bfill()
+
+        # مؤشر القوة النسبية (RSI)
+        data['RSI_14'] = talib.RSI(data['Close'], timeperiod=14)
+
+        # مؤشر الماكد (MACD)
+        macd, signal, _ = talib.MACD(data['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
+        data['MACD'] = macd
+        data['Signal'] = signal
+
+        # مؤشر متوسط الحركة البسيط (SMA)
+        data['SMA_20'] = talib.SMA(data['Close'], timeperiod=20)
+
+        # مؤشر متوسط الحركة الأسي (EMA)
+        data['EMA_20'] = talib.EMA(data['Close'], timeperiod=20)
+
+        # Bollinger Bands
+        upper, middle, lower = talib.BBANDS(data['Close'], timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+        data['BB_upper'] = upper
+        data['BB_middle'] = middle
+        data['BB_lower'] = lower
+
+        return data
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء حساب المؤشرات الفنية: {e}")
+        return None
+
 if st.button("تحميل البيانات والتنبؤ"):
     with st.spinner("جاري تحميل البيانات..."):
         # تحميل بيانات السهم
@@ -25,8 +62,8 @@ if st.button("تحميل البيانات والتنبؤ"):
             # إعادة تسمية الأعمدة
             stock_data.columns = ['Date', 'Adj Close', 'Close', 'High', 'Low', 'Open', 'Volume']
 
-            # إضافة المؤشرات الفنية
-            stock_data = add_technical_indicators(stock_data)
+            # إضافة المؤشرات الفنية باستخدام TA-Lib
+            stock_data = add_technical_indicators_talib(stock_data)
 
             if stock_data is not None:
                 st.success("تم تحميل البيانات وإضافة المؤشرات الفنية بنجاح!")
