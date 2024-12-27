@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas_ta as ta
+import talib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ future_days = st.slider("عدد الأيام للتنبؤ:", min_value=1, max_va
 
 def add_technical_indicators(data):
     """
-    إضافة المؤشرات الفنية باستخدام مكتبة pandas-ta
+    إضافة المؤشرات الفنية باستخدام مكتبة TA-Lib
     """
     try:
         # التأكد من وجود عمود 'Close' وعدم وجود قيم مفقودة
@@ -29,26 +29,35 @@ def add_technical_indicators(data):
         data['Close'] = data['Close'].ffill().bfill()
 
         # مؤشر القوة النسبية (RSI)
-        data['RSI_14'] = ta.rsi(data['Close'], length=14)
+        data['RSI_14'] = talib.RSI(data['Close'], timeperiod=14)
 
         # مؤشر الماكد (MACD)
-        macd = ta.macd(data['Close'])
-        if macd is not None:
-            data['MACD'] = macd['MACD_12_26_9']
-            data['Signal'] = macd['MACDs_12_26_9']
+        macd, macd_signal, macd_hist = talib.MACD(
+            data['Close'], 
+            fastperiod=12, 
+            slowperiod=26, 
+            signalperiod=9
+        )
+        data['MACD'] = macd
+        data['Signal'] = macd_signal
 
         # مؤشر متوسط الحركة البسيط (SMA)
-        data['SMA_20'] = ta.sma(data['Close'], length=20)
+        data['SMA_20'] = talib.SMA(data['Close'], timeperiod=20)
 
         # مؤشر متوسط الحركة الأسي (EMA)
-        data['EMA_20'] = ta.ema(data['Close'], length=20)
+        data['EMA_20'] = talib.EMA(data['Close'], timeperiod=20)
 
         # Bollinger Bands
-        bb = ta.bbands(data['Close'], length=20)
-        if bb is not None:
-            data['BB_upper'] = bb['BBU_20_2.0']
-            data['BB_middle'] = bb['BBM_20_2.0']
-            data['BB_lower'] = bb['BBL_20_2.0']
+        upperband, middleband, lowerband = talib.BBANDS(
+            data['Close'], 
+            timeperiod=20, 
+            nbdevup=2, 
+            nbdevdn=2, 
+            matype=0
+        )
+        data['BB_upper'] = upperband
+        data['BB_middle'] = middleband
+        data['BB_lower'] = lowerband
 
         return data
     except Exception as e:
@@ -64,7 +73,7 @@ if st.button("تحميل البيانات والتنبؤ"):
             # إعادة تسمية الأعمدة
             stock_data.columns = ['Date', 'Adj Close', 'Close', 'High', 'Low', 'Open', 'Volume']
 
-            # إضافة المؤشرات الفنية باستخدام pandas-ta
+            # إضافة المؤشرات الفنية باستخدام TA-Lib
             stock_data = add_technical_indicators(stock_data)
 
             if stock_data is not None:

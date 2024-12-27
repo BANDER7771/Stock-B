@@ -2,7 +2,7 @@ streamlit
 pandas
 matplotlib
 yfinance
-pandas-ta==0.3.14b0
+talib
 scikit-learn
 numpy
 setuptools
