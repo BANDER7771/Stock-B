@@ -4,5 +4,5 @@ matplotlib
 yfinance
 pandas-ta==0.3.14b0
 scikit-learn
-numpy
+numpy==1.23.5
 setuptools
