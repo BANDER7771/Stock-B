@@ -1,6 +1,6 @@
 import yfinance as yf
 import pandas as pd
-import talib
+import pandas_ta as ta
 
 def download_stock_data(ticker, start_date, end_date):
     """
@@ -9,12 +9,12 @@ def download_stock_data(ticker, start_date, end_date):
     try:
         # تحميل البيانات
         data = yf.download(ticker, start=start_date, end=end_date)
-        
+
         # التحقق من البيانات
         if data.empty:
             print(f"لا توجد بيانات للسهم {ticker} في الفترة المحددة.")
             return None
-        
+
         # إعادة البيانات بعد تنظيف الأعمدة
         data.reset_index(inplace=True)
         print(f"تم تحميل بيانات السهم {ticker} بنجاح.")
@@ -25,7 +25,7 @@ def download_stock_data(ticker, start_date, end_date):
 
 def add_technical_indicators(data):
     """
-    إضافة المؤشرات الفنية باستخدام TA-Lib
+    إضافة المؤشرات الفنية باستخدام pandas-ta
     """
     try:
         # التأكد من وجود عمود 'Close' وعدم وجود قيم مفقودة
@@ -36,35 +36,24 @@ def add_technical_indicators(data):
         data['Close'] = data['Close'].ffill().bfill()
 
         # مؤشر القوة النسبية (RSI)
-        data['RSI_14'] = talib.RSI(data['Close'], timeperiod=14)
+        data['RSI_14'] = ta.rsi(data['Close'], length=14)
 
         # مؤشر الماكد (MACD)
-        macd, macd_signal, macd_hist = talib.MACD(
-            data['Close'], 
-            fastperiod=12, 
-            slowperiod=26, 
-            signalperiod=9
-        )
-        data['MACD'] = macd
-        data['Signal'] = macd_signal
+        macd = ta.macd(data['Close'], fast=12, slow=26, signal=9)
+        data['MACD'] = macd['MACD_12_26_9']
+        data['Signal'] = macd['MACDs_12_26_9']
 
         # مؤشر متوسط الحركة البسيط (SMA)
-        data['SMA_20'] = talib.SMA(data['Close'], timeperiod=20)
+        data['SMA_20'] = ta.sma(data['Close'], length=20)
 
         # مؤشر متوسط الحركة الأسي (EMA)
-        data['EMA_20'] = talib.EMA(data['Close'], timeperiod=20)
+        data['EMA_20'] = ta.ema(data['Close'], length=20)
 
         # Bollinger Bands
-        upperband, middleband, lowerband = talib.BBANDS(
-            data['Close'], 
-            timeperiod=20, 
-            nbdevup=2, 
-            nbdevdn=2, 
-            matype=0
-        )
-        data['BB_upper'] = upperband
-        data['BB_middle'] = middleband
-        data['BB_lower'] = lowerband
+        bb = ta.bbands(data['Close'], length=20)
+        data['BB_upper'] = bb['BBU_20_2.0']
+        data['BB_middle'] = bb['BBM_20_2.0']
+        data['BB_lower'] = bb['BBL_20_2.0']
 
         return data
     except Exception as e:
@@ -76,7 +65,7 @@ if __name__ == "__main__":
     ticker = "AAPL"  # رمز السهم (يمكن تغييره)
     start_date = "2020-01-01"
     end_date = "2023-12-31"
-    
+
     stock_data = download_stock_data(ticker, start_date, end_date)
     if stock_data is not None:
         print(stock_data.head())  # طباعة أول 5 صفوف من البيانات
