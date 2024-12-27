@@ -1,6 +1,18 @@
 import streamlit as st
 import sys
-sys.path.insert(0, './pandas_ta')
+import os
+
+# طباعة المسارات للتحقق
+print("Paths being searched for modules:")
+print("\n".join(sys.path))
+
+# إدراج المسار المحلي لمكتبة pandas-ta
+sys.path.insert(0, os.path.abspath('./pandas_ta'))
+print("Updated paths after adding pandas_ta:")
+print("\n".join(sys.path))
+
+# استيراد pandas-ta
+import pandas_ta as ta
 import pandas_ta as ta
 import numpy as np
 import pandas as pd
